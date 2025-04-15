@@ -17,16 +17,19 @@ export async function GET() {
   let db;
   try {
     db = await getDatabaseConnection();
-    const rows = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
+    const rows = await db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
     const tableNames = rows.map(row => row.name);
 
-    // Filter out SQLite system tables if needed
-    const userTables = tableNames.filter(name => !name.startsWith('sqlite_'));
+    const tableData = {};
+    for (const tableName of tableNames) {
+      const tableRows = await db.all(`SELECT * FROM ${tableName}`);
+      tableData[tableName] = tableRows;
+    }
 
-    return NextResponse.json({ tables: userTables });
+    return NextResponse.json({ data: tableData });
   } catch (error) {
     console.error('Database error:', error);
-    return NextResponse.json({ error: 'Failed to fetch tables' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch table data' }, { status: 500 });
   } finally {
     if (db) {
       await db.close();

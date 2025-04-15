@@ -1,53 +1,39 @@
-// src/app/page.js (or src/app/page.tsx)
+// src/app/page.js (Server Component)
 
-'use client'; // This is a client component
+import TableDisplay from './components/TableDisplay';
+import { headers } from 'next/headers';
 
-import { useState, useEffect } from 'react';
+async function getTableData() {
+  try {
+    const headersList = headers();
+    const host = headersList.get('host');
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    const response = await fetch(`${protocol}://${host}/api/tables`);
 
-export default function Home() {
-  const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    async function fetchTables() {
-      try {
-        const response = await fetch('/api/tables');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setTables(data.tables);
-        setLoading(false);
-      } catch (e) {
-        setError(e.message);
-        setLoading(false);
-      }
+    if (!response.ok) {
+      console.error('Failed to fetch table data from API:', response.status);
+      return null;
     }
 
-    fetchTables();
-  }, []);
-
-  if (loading) {
-    return <div>Loading tables...</div>;
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error fetching table data from API:', error);
+    return null;
   }
+}
 
-  if (error) {
-    return <div>Error loading tables: {error}</div>;
+export default async function Home() {
+  const tableData = await getTableData();
+
+  if (!tableData) {
+    return <div>Error loading database contents.</div>;
   }
 
   return (
     <div>
-      <h1>Database Tables</h1>
-      {tables.length > 0 ? (
-        <ul>
-          {tables.map((table) => (
-            <li key={table}>{table}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>No tables found.</p>
-      )}
+      <h1>Database Contents</h1>
+      <TableDisplay data={tableData} />
     </div>
   );
 }
