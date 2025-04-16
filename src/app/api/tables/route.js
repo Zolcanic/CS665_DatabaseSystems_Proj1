@@ -36,3 +36,33 @@ export async function GET() {
     }
   }
 }
+
+export async function POST(request) {
+  const { table, data } = await request.json();
+
+  if (!table || !data || typeof data !== 'object') {
+    return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+  }
+
+  let db;
+  try {
+    db = await getDatabaseConnection();
+
+    const columns = Object.keys(data);
+    const placeholders = columns.map(() => '?').join(', ');
+    const values = Object.values(data);
+
+    const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`;
+
+    await db.run(sql, values);
+
+    return NextResponse.json({ message: 'Entry created successfully' });
+  } catch (error) {
+    console.error('Database insert error:', error);
+    return NextResponse.json({ error: 'Failed to create entry' }, { status: 500 });
+  } finally {
+    if (db) {
+      await db.close();
+    }
+  }
+}
