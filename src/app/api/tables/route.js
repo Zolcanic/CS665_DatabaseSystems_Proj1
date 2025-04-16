@@ -21,12 +21,17 @@ export async function GET() {
     const tableNames = rows.map(row => row.name);
 
     const tableData = {};
+    const tableSchemas = {};
+
     for (const tableName of tableNames) {
       const tableRows = await db.all(`SELECT * FROM ${tableName}`);
       tableData[tableName] = tableRows;
+
+      const schema = await db.all(`PRAGMA table_info(${tableName})`);
+      tableSchemas[tableName] = schema;
     }
 
-    return NextResponse.json({ data: tableData });
+    return NextResponse.json({ data: tableData, schema: tableSchemas });
   } catch (error) {
     console.error('Database error:', error);
     return NextResponse.json({ error: 'Failed to fetch table data' }, { status: 500 });
