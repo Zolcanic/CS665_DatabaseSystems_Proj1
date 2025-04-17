@@ -71,3 +71,36 @@ export async function POST(request) {
     }
   }
 }
+
+export async function DELETE(request) {
+  let db;
+  try {
+    const { table, conditions } = await request.json();
+
+    if (!table || !conditions || typeof conditions !== 'object') {
+      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+    }
+
+    const keys = Object.keys(conditions).filter(key => conditions[key] !== '');
+    if (keys.length === 0) {
+      return NextResponse.json({ error: 'No conditions provided' }, { status: 400 });
+    }
+
+    const whereClause = keys.map(k => `${k} = ?`).join(' AND ');
+    const values = keys.map(k => conditions[k]);
+
+    const sql = `DELETE FROM ${table} WHERE ${whereClause}`;
+
+    db = await getDatabaseConnection();
+    const result = await db.run(sql, values);
+
+    return NextResponse.json({ message: 'Entry deleted successfully', changes: result.changes });
+  } catch (error) {
+    console.error('Database delete error:', error);
+    return NextResponse.json({ error: 'Failed to delete entry' }, { status: 500 });
+  } finally {
+    if (db) {
+      await db.close();
+    }
+  }
+}
