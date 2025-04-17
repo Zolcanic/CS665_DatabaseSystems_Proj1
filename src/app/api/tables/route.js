@@ -104,3 +104,39 @@ export async function DELETE(request) {
     }
   }
 }
+
+export async function PUT(request) {
+  let db;
+  try {
+    const { table, conditions, updates } = await request.json();
+
+    if (!table || !conditions || typeof conditions !== 'object' || typeof updates !== 'object') {
+      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+    }
+
+    const conditionKeys = Object.keys(conditions).filter(k => conditions[k] !== '');
+    const updateKeys = Object.keys(updates).filter(k => updates[k] !== '');
+
+    if (conditionKeys.length === 0 || updateKeys.length === 0) {
+      return NextResponse.json({ error: 'Conditions and updates are required' }, { status: 400 });
+    }
+
+    const whereClause = conditionKeys.map(k => `${k} = ?`).join(' AND ');
+    const setClause = updateKeys.map(k => `${k} = ?`).join(', ');
+
+    const sql = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+    const values = [...updateKeys.map(k => updates[k]), ...conditionKeys.map(k => conditions[k])];
+
+    db = await getDatabaseConnection();
+    const result = await db.run(sql, values);
+
+    return NextResponse.json({ message: 'Entry updated successfully', changes: result.changes });
+  } catch (error) {
+    console.error('Database update error:', error);
+    return NextResponse.json({ error: 'Failed to update entry' }, { status: 500 });
+  } finally {
+    if (db) {
+      await db.close();
+    }
+  }
+}
