@@ -20,6 +20,15 @@ export default function Home() {
   const [queryResult, setQueryResult] = useState(null);
   const [queryError, setQueryError] = useState(null);
 
+  // Predefined SQL queries based on the database structure
+  const predefinedQueries = [
+    { label: 'All Games', query: 'SELECT * FROM Games' },
+    { label: 'Games Released After 2010', query: 'SELECT * FROM Games WHERE ReleaseYear > 2010' },
+    { label: 'Average Score by Game', query: 'SELECT g.Title, AVG(r.Score) AS AverageScore FROM Games g JOIN Reviews r ON g.GameId = r.GameId GROUP BY g.Title' },
+    { label: 'Sales of Lego Star Wars Games', query: "SELECT * FROM Sales s JOIN Games g ON s.GameId = g.GameId WHERE g.Title LIKE '%Lego Star Wars%'" },
+    { label: 'Media for Batman Games', query: "SELECT m.* FROM Media m JOIN Games g ON m.GameId = g.GameId WHERE g.Title LIKE '%Batman%'" },
+  ];
+
   useEffect(() => {
     fetchTableData();
   }, []);
@@ -150,6 +159,10 @@ export default function Home() {
     }
   };
 
+  const handlePredefinedQueryChange = (e) => {
+    setCustomQuery(e.target.value);
+  };
+
   // Handle custom query submission
   const handleReadSubmit = async (e) => {
     e.preventDefault();
@@ -245,7 +258,7 @@ export default function Home() {
       {action === 'edit' && (
         <form onSubmit={handleEditSubmit} style={{ marginBottom: '30px', border: '1px solid #00f', padding: '15px', borderRadius: '10px' }}>
           <h2>Edit Entry</h2>
-          
+
           {/* Find Entry section */}
           <div style={{ backgroundColor: '#0a0a2a', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
             <h3>Find Entry (Conditions)</h3>
@@ -261,9 +274,9 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
+
           <hr style={{ border: 'none', borderTop: '1px dashed #00f', margin: '20px 0' }} />
-          
+
           {/* Update Values section */}
           <div style={{ backgroundColor: '#0a1a2a', padding: '15px', borderRadius: '8px' }}>
             <h3>Update Values</h3>
@@ -279,7 +292,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
+
           <button type="submit" style={{ backgroundColor: '#007bff', color: 'white', marginTop: '20px' }}>Update Entry</button>
         </form>
       )}
@@ -287,6 +300,18 @@ export default function Home() {
       {/* Custom Query Section */}
       <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ccc', borderRadius: '10px' }}>
         <h2>Custom Read Query</h2>
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ marginRight: '10px' }}>Predefined Queries:</label>
+          <select
+            onChange={(e) => setCustomQuery(e.target.value)}
+            style={{ backgroundColor: 'black', color: 'white', marginRight: '10px' }}
+          >
+            <option value="">-- Choose Query --</option>
+            {predefinedQueries.map(query => (
+              <option key={query.label} value={query.query}>{query.label}</option>
+            ))}
+          </select>
+        </div>
         <form onSubmit={handleReadSubmit}>
           <textarea
             value={customQuery}
