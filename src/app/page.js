@@ -15,6 +15,11 @@ export default function Home() {
   const [editUpdates, setEditUpdates] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // State for custom query functionality
+  const [customQuery, setCustomQuery] = useState('');
+  const [queryResult, setQueryResult] = useState(null);
+  const [queryError, setQueryError] = useState(null);
+
   useEffect(() => {
     fetchTableData();
   }, []);
@@ -145,6 +150,31 @@ export default function Home() {
     }
   };
 
+  // Handle custom query submission
+  const handleReadSubmit = async (e) => {
+    e.preventDefault();
+    setQueryError(null);
+    setQueryResult(null);
+
+    try {
+      const res = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: customQuery })
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        setQueryResult(result.data);
+      } else {
+        const error = await res.json();
+        setQueryError(error.message || 'Query failed');
+      }
+    } catch (err) {
+      setQueryError('Network error');
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (!tableData || !tableSchema) return <div>Error loading data</div>;
 
@@ -216,7 +246,7 @@ export default function Home() {
         <form onSubmit={handleEditSubmit} style={{ marginBottom: '30px', border: '1px solid #00f', padding: '15px', borderRadius: '10px' }}>
           <h2>Edit Entry</h2>
           
-          {/* Find Entry section - needs styling changes */}
+          {/* Find Entry section */}
           <div style={{ backgroundColor: '#0a0a2a', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
             <h3>Find Entry (Conditions)</h3>
             {schemaFields.map(field => (
@@ -232,10 +262,9 @@ export default function Home() {
             ))}
           </div>
           
-          {/* Divider between sections */}
           <hr style={{ border: 'none', borderTop: '1px dashed #00f', margin: '20px 0' }} />
           
-          {/* Update Values section - needs different styling */}
+          {/* Update Values section */}
           <div style={{ backgroundColor: '#0a1a2a', padding: '15px', borderRadius: '8px' }}>
             <h3>Update Values</h3>
             {schemaFields.map(field => (
@@ -254,6 +283,47 @@ export default function Home() {
           <button type="submit" style={{ backgroundColor: '#007bff', color: 'white', marginTop: '20px' }}>Update Entry</button>
         </form>
       )}
+
+      {/* Custom Query Section */}
+      <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ccc', borderRadius: '10px' }}>
+        <h2>Custom Read Query</h2>
+        <form onSubmit={handleReadSubmit}>
+          <textarea
+            value={customQuery}
+            onChange={(e) => setCustomQuery(e.target.value)}
+            placeholder="Enter your SQL-like query here"
+            style={{ width: '100%', height: '100px', marginBottom: '10px', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
+          />
+          <button type="submit" style={{ backgroundColor: '#007bff', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px' }}>
+            Execute Query
+          </button>
+        </form>
+
+        {queryError && <div style={{ color: 'red', marginTop: '10px' }}>Error: {queryError}</div>}
+        {queryResult && (
+          <div style={{ marginTop: '20px' }}>
+            <h3>Query Results:</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+              <thead>
+                <tr>
+                  {Object.keys(queryResult[0] || {}).map((key) => (
+                    <th key={key} style={{ border: '1px solid #ccc', padding: '8px', textAlign: 'left' }}>{key}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {queryResult.map((row, index) => (
+                  <tr key={index}>
+                    {Object.values(row).map((value, idx) => (
+                      <td key={idx} style={{ border: '1px solid #ccc', padding: '8px' }}>{value}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <TableDisplay data={tableData} />
     </div>
